@@ -1,0 +1,13 @@
+{
+    "name": "adasilva/jwt-utils",
+    "description": "JWT library",
+    "minimum-stability": "dev",
+    "require": {
+        "php" :"^7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "JWTUtils\\": "src"
+        }
+    }
+}
