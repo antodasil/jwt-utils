@@ -4,10 +4,12 @@ namespace JWTUtils;
 
 use DateTime;
 
-class JWTToken {
-    protected array    $header;
-    protected array    $payload;
-    protected string   $signature;
+class JWTToken
+{
+
+    protected JWTArray $header;
+    protected JWTArray $payload;
+    protected string $signature;
     protected JWTUtils $utils;
 
     /**
@@ -19,27 +21,30 @@ class JWTToken {
      * 
      * @return JWTToken
      */
-    public function __construct(array $header, array $payload, ?string $signature = null) {
+    public function __construct(JWTArray $header, JWTArray $payload, ?string $signature = null)
+    {
         $this->header    = $header;
         $this->payload   = $payload;
-        $this->signature = $signature ?? JWTUtils::sign($header, $payload);
+        $this->signature = $signature ?? JWTSigner::getInstance()->sign($header, $payload);
     }
 
     /**
      * Get the value of header
      *
-     * @return array
+     * @return JWTArray
      */
-    public function getHeader():array {
+    public function getHeader(): JWTArray
+    {
         return $this->header;
     }
 
     /**
      * Get the value of payload
      *
-     * @return array
+     * @return JWTArray
      */
-    public function getPayload(): array {
+    public function getPayload(): JWTArray
+    {
         return $this->payload;
     }
 
@@ -48,7 +53,8 @@ class JWTToken {
      *
      * @return string
      */
-    public function getSignature(): string {
+    public function getSignature(): string
+    {
         return $this->signature;
     }
 
@@ -58,8 +64,8 @@ class JWTToken {
      * @return string
      */
     public function getToken(): string {
-        $header  = JWTUtils::base64UriEncode(json_encode($this->getHeader()));
-        $payload = JWTUtils::base64UriEncode(json_encode($this->getPayload()));
+        $header  = $this->getHeader()->encode();
+        $payload = $this->getPayload()->encode();
         $signature = $this->getSignature();
         return "$header.$payload.$signature";
     }
@@ -70,36 +76,43 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function isValid(): bool {
+    public function isValid(): bool
+    {
 
-        if(array_key_exists('iat', $this->getPayload()) && $this->getPayload()['iat'] !== null) {
+        if($this->getPayload()->exist(JWTConstants::PAYLOAD_ISSUED_AT))
+        {
             $dateToken = new DateTime();
-            $dateToken->setTimestamp((int) $this->getPayload()['iat']);
+            $dateToken->setTimestamp((int) $this->getPayload()->get(JWTConstants::PAYLOAD_ISSUED_AT));
             
-            if($dateToken > new Datetime()) {
+            if($dateToken > new Datetime())
+            {
                 return false;
             }
         }
         
-        if(array_key_exists('exp', $this->getPayload()) && $this->getPayload()['exp'] !== null) {
+        if($this->getPayload()->exist(JWTConstants::PAYLOAD_EXPIRATION_TIME))
+        {
             $dateExp = new DateTime();
-            $dateExp->setTimestamp((int) $this->getPayload()['exp']);
+            $dateExp->setTimestamp((int) $this->getPayload()->get(JWTConstants::PAYLOAD_EXPIRATION_TIME));
             
-            if($dateExp < new Datetime()) {
+            if($dateExp < new Datetime())
+            {
                 return false;
             }
         }
 
-        if(array_key_exists('nbf', $this->getPayload()) && $this->getPayload()['nbf'] !== null) {
+        if($this->getPayload()->exist(JWTConstants::PAYLOAD_NOT_BEFORE))
+        {
             $dateBegin = new Datetime();
-            $dateBegin->setTimestamp((int) $this->getPayload()['nbf']);
+            $dateBegin->setTimestamp((int) $this->getPayload()->get(JWTConstants::PAYLOAD_NOT_BEFORE));
 
-            if($dateBegin > new Datetime()) {
+            if($dateBegin > new Datetime())
+            {
                 return false;
             }
         }
 
-        return hash_equals($this->getSignature(), JWTUtils::sign($this->getHeader(), $this->getPayload()));
+        return hash_equals($this->getSignature(), JWTSigner::getInstance()->sign($this->getHeader(), $this->getPayload()));
     }
 
     /**
@@ -110,9 +123,11 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function check(string $key, string $value): bool {
+    public function check(string $key, string $value): bool
+    {
 
-        if(!array_key_exists($key, $this->getPayload()) || is_null($this->getPayload()[$key])) {
+        if(!$this->getPayload()->exist($key))
+        {
             return false;
         }
         return $this->getPayload()[$key] === $value;
@@ -125,8 +140,9 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function checkIssuer(string $issuer): bool {
-        return $this->check('iss', $issuer);
+    public function checkIssuer(string $issuer): bool
+    {
+        return $this->check(JWTConstants::PAYLOAD_ISSUER, $issuer);
     }
 
     /**
@@ -136,8 +152,9 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function checkSubject(string $subject): bool {
-        return $this->check('sub', $subject);
+    public function checkSubject(string $subject): bool
+    {
+        return $this->check(JWTConstants::PAYLOAD_SUBJECT, $subject);
     }
 
     /**
@@ -147,8 +164,9 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function checkAudience(string $audience): bool {
-        return $this->check('aud', $audience);
+    public function checkAudience(string $audience): bool
+    {
+        return $this->check(JWTConstants::PAYLOAD_AUDIENCE, $audience);
     }
 
     /**
@@ -158,8 +176,9 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function checkJwtID(string $jwtID): bool {
-        return $this->check('jti', $jwtID);
+    public function checkJwtID(string $jwtID): bool
+    {
+        return $this->check(JWTConstants::PAYLOAD_ID, $jwtID);
     }
 
     /**
@@ -172,7 +191,8 @@ class JWTToken {
      * 
      * @return bool
      */
-    public function checkAll(?string $issuer = null, ?string $subject = null, ?string $audience = null, ?string $jwtID = null): bool {
+    public function checkAll(?string $issuer = null, ?string $subject = null, ?string $audience = null, ?string $jwtID = null): bool
+    {
         return (is_null($issuer)   ? true : $this->checkIssuer($issuer))
             && (is_null($subject)  ? true : $this->checkSubject($subject))
             && (is_null($audience) ? true : $this->checkAudience($audience))
@@ -184,7 +204,8 @@ class JWTToken {
      * 
      * @return string
      */
-    public function __toString(): string {
+    public function __toString(): string
+    {
         return $this->getToken();
     }
 

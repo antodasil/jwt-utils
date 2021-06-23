@@ -2,6 +2,7 @@
 
 namespace JWTUtils;
 
-class JWTException extends \Exception {
+class JWTException extends \Exception
+{
     
 }

@@ -2,12 +2,14 @@
 
 namespace JWTUtils;
 
-class JWTBuilder {
+class JWTBuilder
+{
 
-    protected array $header;
-    protected array $payload;
+    protected JWTArray $header;
+    protected JWTArray $payload;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->header  = array();
         $this->payload = array();
     }
@@ -15,18 +17,20 @@ class JWTBuilder {
     /**
      * Get header
      * 
-     * @return array
+     * @return JWTArray
      */
-    public function getHeader(): array {
+    public function getHeader(): JWTArray
+    {
         return $this->header;
     }
 
     /**
      * Get payload
      * 
-     * @return array
+     * @return JWTArray
      */
-    public function getPayload(): array {
+    public function getPayload(): JWTArray
+    {
         return $this->payload;
     }
 
@@ -37,16 +41,16 @@ class JWTBuilder {
      * 
      * @return JWTToken|null
      */
-    public static function get(string $token): ?JWTToken {
+    public static function get(string $token): ?JWTToken
+    {
         
-        if(!JWTUtils::isJWT($token)) {
+        if(!JWTUtils::isJWT($token))
+        {
             return null;
         }
 
         list($header, $payload, $signature) = explode('.', $token);
-        $header  = json_decode(JWTUtils::base64UriDecode($header));
-        $payload = json_decode(JWTUtils::base64UriDecode($payload));
-        return new JWTToken($header, $payload, $signature);
+        return new JWTToken(JWTArray::decode($header), JWTArray::decode($payload), $signature);
     }
 
     /**
@@ -54,14 +58,17 @@ class JWTBuilder {
      * 
      * @return JWTToken
      */
-    public function buildToken(): JWTToken {
-        if(!array_key_exists('alg', $this->getHeader())) {
-            $this->setAlgorithm('HS256');
-        }
-        if(!array_key_exists('typ', $this->getHeader())) {
-            $this->setType('JWT');
-        }
+    public function buildToken(): JWTToken
+    {
 
+        if(!$this->getHeader()->exist(JWTConstants::HEADER_ALGORITHM_DEFAULT))
+        {
+            $this->setAlgorithm(JWTConstants::HEADER_ALGORITHM_DEFAULT);
+        }
+        if(!$this->getHeader()->exist(JWTConstants::HEADER_TYPE))
+        {
+            $this->setType(JWTConstants::HEADER_TYPE_DEFAULT);
+        }
         return new JWTToken($this->getHeader(), $this->getPayload());
     }
 
@@ -73,7 +80,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setHeader(string $key, string $value): JWTBuilder {
+    public function setHeader(string $key, string $value): JWTBuilder
+    {
         $this->header[$key] = $value;
         return $this;
     }
@@ -85,7 +93,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setAlgorithm(string $algorithm): JWTBuilder {
+    public function setAlgorithm(string $algorithm): JWTBuilder
+    {
         $this->setHeader('alg', $algorithm);
         return $this;
     }
@@ -97,7 +106,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setType(string $type = 'JWT'): JWTBuilder {
+    public function setType(string $type = 'JWT'): JWTBuilder
+    {
         $this->setHeader('typ', $type);
         return $this;
     }
@@ -110,7 +120,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function set(string $key, string $value): JWTBuilder {
+    public function set(string $key, string $value): JWTBuilder
+    {
         $this->payload[$key] = $value;
         return $this;
     }
@@ -122,7 +133,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setIssuer(string $issuer): JWTBuilder {
+    public function setIssuer(string $issuer): JWTBuilder
+    {
         return $this->set('iss', $issuer);
     }
 
@@ -133,7 +145,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setSubject(string $subject): JWTBuilder {
+    public function setSubject(string $subject): JWTBuilder
+    {
         return $this->set('sub', $subject);
     }
 
@@ -144,7 +157,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setAudience(string $audience): JWTBuilder {
+    public function setAudience(string $audience): JWTBuilder
+    {
         return $this->set('aud', $audience);
     }
 
@@ -155,7 +169,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setExpirationTime(string $expirationTime): JWTBuilder {
+    public function setExpirationTime(string $expirationTime): JWTBuilder
+    {
         return $this->set('exp', $expirationTime);
     }
 
@@ -166,7 +181,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setNotBefore(string $notBefore): JWTBuilder {
+    public function setNotBefore(string $notBefore): JWTBuilder
+    {
         return $this->set('nbf', $notBefore);
     }
 
@@ -177,7 +193,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setIssuedAt(string $issuedAt): JWTBuilder {
+    public function setIssuedAt(string $issuedAt): JWTBuilder
+    {
         return $this->set('iat', $issuedAt);
     }
 
@@ -188,7 +205,8 @@ class JWTBuilder {
      * 
      * @return JWTBuilder
      */
-    public function setJwtID(string $jwtID): JWTBuilder {
+    public function setJwtID(string $jwtID): JWTBuilder
+    {
         return $this->set('jti', $jwtID);
     }
 }
